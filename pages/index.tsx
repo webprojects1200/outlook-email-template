@@ -14,13 +14,17 @@ export default function Home() {
   const [editCc, setEditCc] = useState('');
   const [editBcc, setEditBcc] = useState('');
   const [editContent, setEditContent] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [editFile, setEditFile] = useState<File | null>(null);
 
   // Fetch templates helper
   const fetchTemplates = async () => {
     const { data, error } = await supabase.from('templates').select('*');
     if (error) {
+      console.error('Error fetching templates:', error);
       alert('Error fetching templates: ' + error.message);
-      setTemplates([]);
+      // Do not clear the list on error
+      return;
     } else {
       setTemplates(data || []);
     }
@@ -33,15 +37,26 @@ export default function Home() {
   const handleAddTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !newTemplate.trim()) return;
-    const { error } = await supabase.from('templates').insert([
+    let file_url = '';
+    if (file) {
+      const { data: uploadData, error: uploadError } = await supabase.storage.from('template-files').upload(`templates/${Date.now()}_${file.name}`, file);
+      if (uploadError) {
+        alert('Error uploading file: ' + uploadError.message);
+        return;
+      }
+      file_url = uploadData?.path || '';
+    }
+    const { data, error } = await supabase.from('templates').insert([
       {
         title,
         content: newTemplate,
         subject,
         cc,
         bcc,
+        file_url,
       },
     ]);
+    console.log('Insert result:', { data, error });
     if (error) {
       alert('Error adding template: ' + error.message);
       return;
@@ -51,6 +66,7 @@ export default function Home() {
     setSubject('');
     setCc('');
     setBcc('');
+    setFile(null);
     // Refresh templates
     await fetchTemplates();
   };
@@ -76,18 +92,31 @@ export default function Home() {
   const handleEditTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingId || !editTitle.trim() || !editContent.trim()) return;
-    const { error } = await supabase.from('templates').update({
+    let file_url = undefined;
+    if (editFile) {
+      const { data: uploadData, error: uploadError } = await supabase.storage.from('template-files').upload(`templates/${Date.now()}_${editFile.name}`, editFile);
+      if (uploadError) {
+        alert('Error uploading file: ' + uploadError.message);
+        return;
+      }
+      file_url = uploadData?.path || '';
+    }
+    const updateData: any = {
       title: editTitle,
       subject: editSubject,
       cc: editCc,
       bcc: editBcc,
       content: editContent,
-    }).eq('id', editingId);
+    };
+    if (file_url !== undefined) updateData.file_url = file_url;
+    const { data, error } = await supabase.from('templates').update(updateData).eq('id', editingId);
+    console.log('Update result:', { data, error });
     if (error) {
       alert('Error updating template: ' + error.message);
       return;
     }
     cancelEdit();
+    setEditFile(null);
     // Refresh templates
     await fetchTemplates();
   };
@@ -132,6 +161,11 @@ export default function Home() {
                 onChange={e => setNewTemplate(e.target.value)}
                 rows={5}
                 required
+              />
+              <input
+                type="file"
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                onChange={e => setFile(e.target.files?.[0] || null)}
               />
               <button
                 type="submit"
@@ -184,6 +218,11 @@ export default function Home() {
                           rows={3}
                           required
                         />
+                        <input
+                          type="file"
+                          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                          onChange={e => setEditFile(e.target.files?.[0] || null)}
+                        />
                         <div className="flex gap-2">
                           <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">Save</button>
                           <button type="button" onClick={cancelEdit} className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-3 py-1 rounded">Cancel</button>
@@ -200,6 +239,18 @@ export default function Home() {
                           {template.cc && <span><span className="font-semibold">CC:</span> {template.cc}</span>}
                           {template.bcc && <span><span className="font-semibold">BCC:</span> {template.bcc}</span>}
                         </div>
+                        {template.file_url && (
+                          <div className="mt-2">
+                            <a
+                              href={supabase.storage.from('template-files').getPublicUrl(template.file_url).data.publicUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 underline text-sm"
+                            >
+                              Download attached file
+                            </a>
+                          </div>
+                        )}
                         <div className="flex gap-2 mt-3">
                           <button
                             type="button"
