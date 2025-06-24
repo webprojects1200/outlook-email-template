@@ -28,85 +28,105 @@ export default function Home() {
         bcc,
       },
     ]);
-    if (!error) {
-      setTitle('');
-      setNewTemplate('');
-      setSubject('');
-      setCc('');
-      setBcc('');
-      // Refresh templates
-      const { data } = await supabase
-        .from('templates')
-        .select('*');
-      setTemplates(data || []);
+    if (error) {
+      alert('Error adding template: ' + error.message);
+      return;
     }
+    setTitle('');
+    setNewTemplate('');
+    setSubject('');
+    setCc('');
+    setBcc('');
+    // Refresh templates
+    const { data } = await supabase
+      .from('templates')
+      .select('*');
+    setTemplates(data || []);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-100">
-      <div className="w-full max-w-xl">
-        <form onSubmit={handleAddTemplate} className="mb-6 space-y-4 bg-white shadow-2xl rounded-2xl px-10 pt-8 pb-10 border border-gray-100">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">Create Email Template</h2>
-          <input
-            className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg w-full p-3 mb-2 text-gray-700 placeholder-gray-400 transition"
-            placeholder="Title"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            required
-          />
-          <input
-            className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg w-full p-3 mb-2 text-gray-700 placeholder-gray-400 transition"
-            placeholder="Subject"
-            value={subject}
-            onChange={e => setSubject(e.target.value)}
-          />
-          <input
-            className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg w-full p-3 mb-2 text-gray-700 placeholder-gray-400 transition"
-            placeholder="CC (comma separated)"
-            value={cc}
-            onChange={e => setCc(e.target.value)}
-          />
-          <input
-            className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg w-full p-3 mb-2 text-gray-700 placeholder-gray-400 transition"
-            placeholder="BCC (comma separated)"
-            value={bcc}
-            onChange={e => setBcc(e.target.value)}
-          />
-          <textarea
-            className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg w-full p-3 mb-2 text-gray-700 placeholder-gray-400 transition resize-none"
-            placeholder="Enter new email template..."
-            value={newTemplate}
-            onChange={e => setNewTemplate(e.target.value)}
-            rows={5}
-            required
-          />
-          <button
-            type="submit"
-            className="bg-gradient-to-r from-blue-500 to-green-400 hover:from-blue-600 hover:to-green-500 text-white font-semibold px-6 py-3 rounded-lg shadow-md w-full transition"
-          >
-            Add Template
-          </button>
-        </form>
-        <div className="bg-white shadow-xl rounded-2xl p-6 border border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-700 mb-4 text-center">Your Templates</h2>
-          <ul className="space-y-4">
-            {templates.length === 0 && (
-              <li className="text-gray-400 text-center">No templates yet.</li>
-            )}
-            {templates.map((template) => (
-              <li key={template.id} className="p-4 rounded-xl border border-gray-200 shadow-sm bg-gradient-to-br from-blue-50 to-green-50">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="font-bold text-lg text-blue-700">{template.title}</span>
-                  <span className="text-xs text-gray-400">{template.subject}</span>
-                </div>
-                <div className="mb-1 text-gray-600 whitespace-pre-line">{template.content}</div>
-                <div className="flex flex-wrap gap-2 text-xs text-gray-500 mt-2">
-                  {template.cc && <span><span className="font-semibold">CC:</span> {template.cc}</span>}
-                  {template.bcc && <span><span className="font-semibold">BCC:</span> {template.bcc}</span>}
-                </div>
-              </li>
-            ))}
-          </ul>
+      <div className="w-full max-w-6xl px-2">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Form Column */}
+          <div className="w-full lg:w-1/2">
+            <form onSubmit={handleAddTemplate} className="mb-6 space-y-4 bg-white shadow-2xl rounded-2xl px-6 pt-8 pb-10 border border-gray-100">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">Create Email Template</h2>
+              <input
+                className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg w-full p-3 mb-2 text-gray-700 placeholder-gray-400 transition"
+                placeholder="Title"
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                required
+              />
+              <input
+                className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg w-full p-3 mb-2 text-gray-700 placeholder-gray-400 transition"
+                placeholder="Subject"
+                value={subject}
+                onChange={e => setSubject(e.target.value)}
+              />
+              <input
+                className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg w-full p-3 mb-2 text-gray-700 placeholder-gray-400 transition"
+                placeholder="CC (comma separated)"
+                value={cc}
+                onChange={e => setCc(e.target.value)}
+              />
+              <input
+                className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg w-full p-3 mb-2 text-gray-700 placeholder-gray-400 transition"
+                placeholder="BCC (comma separated)"
+                value={bcc}
+                onChange={e => setBcc(e.target.value)}
+              />
+              <textarea
+                className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg w-full p-3 mb-2 text-gray-700 placeholder-gray-400 transition resize-none"
+                placeholder="Enter new email template..."
+                value={newTemplate}
+                onChange={e => setNewTemplate(e.target.value)}
+                rows={5}
+                required
+              />
+              <button
+                type="submit"
+                className="bg-gradient-to-r from-blue-500 to-green-400 hover:from-blue-600 hover:to-green-500 text-white font-semibold px-6 py-3 rounded-lg shadow-md w-full transition"
+              >
+                Add Template
+              </button>
+            </form>
+          </div>
+          {/* List Column */}
+          <div className="w-full lg:w-1/2">
+            <div className="bg-white shadow-xl rounded-2xl p-6 border border-gray-100">
+              <h2 className="text-xl font-semibold text-gray-700 mb-4 text-center">List of Email Templates</h2>
+              <ul className="space-y-4">
+                {templates.length === 0 && (
+                  <li className="text-gray-400 text-center">No templates yet.</li>
+                )}
+                {templates.map((template) => (
+                  <li key={template.id} className="p-4 rounded-xl border border-gray-200 shadow-sm bg-gradient-to-br from-blue-50 to-green-50">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="font-bold text-lg text-blue-700">{template.title}</span>
+                      <span className="text-xs text-gray-400">{template.subject}</span>
+                    </div>
+                    <div className="mb-1 text-gray-600 whitespace-pre-line">{template.content}</div>
+                    <div className="flex flex-wrap gap-2 text-xs text-gray-500 mt-2">
+                      {template.cc && <span><span className="font-semibold">CC:</span> {template.cc}</span>}
+                      {template.bcc && <span><span className="font-semibold">BCC:</span> {template.bcc}</span>}
+                    </div>
+                    <button
+                      type="button"
+                      className="mt-3 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded transition"
+                      onClick={() => {
+                        navigator.clipboard.writeText(template.content);
+                        alert('Template copied to clipboard!');
+                      }}
+                    >
+                      Copy
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </div>
