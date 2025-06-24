@@ -8,12 +8,26 @@ export default function Home() {
   const [subject, setSubject] = useState('');
   const [cc, setCc] = useState('');
   const [bcc, setBcc] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editSubject, setEditSubject] = useState('');
+  const [editCc, setEditCc] = useState('');
+  const [editBcc, setEditBcc] = useState('');
+  const [editContent, setEditContent] = useState('');
+
+  // Fetch templates helper
+  const fetchTemplates = async () => {
+    const { data, error } = await supabase.from('templates').select('*');
+    if (error) {
+      alert('Error fetching templates: ' + error.message);
+      setTemplates([]);
+    } else {
+      setTemplates(data || []);
+    }
+  };
 
   useEffect(() => {
-    supabase
-      .from('templates')
-      .select('*')
-      .then(({ data }) => setTemplates(data || []));
+    fetchTemplates();
   }, []);
 
   const handleAddTemplate = async (e: React.FormEvent) => {
@@ -38,10 +52,44 @@ export default function Home() {
     setCc('');
     setBcc('');
     // Refresh templates
-    const { data } = await supabase
-      .from('templates')
-      .select('*');
-    setTemplates(data || []);
+    await fetchTemplates();
+  };
+
+  const startEdit = (template: any) => {
+    setEditingId(template.id);
+    setEditTitle(template.title);
+    setEditSubject(template.subject || '');
+    setEditCc(template.cc || '');
+    setEditBcc(template.bcc || '');
+    setEditContent(template.content);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditTitle('');
+    setEditSubject('');
+    setEditCc('');
+    setEditBcc('');
+    setEditContent('');
+  };
+
+  const handleEditTemplate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingId || !editTitle.trim() || !editContent.trim()) return;
+    const { error } = await supabase.from('templates').update({
+      title: editTitle,
+      subject: editSubject,
+      cc: editCc,
+      bcc: editBcc,
+      content: editContent,
+    }).eq('id', editingId);
+    if (error) {
+      alert('Error updating template: ' + error.message);
+      return;
+    }
+    cancelEdit();
+    // Refresh templates
+    await fetchTemplates();
   };
 
   return (
@@ -103,25 +151,76 @@ export default function Home() {
                 )}
                 {templates.map((template) => (
                   <li key={template.id} className="p-4 rounded-xl border border-gray-200 shadow-sm bg-gradient-to-br from-blue-50 to-green-50">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="font-bold text-lg text-blue-700">{template.title}</span>
-                      <span className="text-xs text-gray-400">{template.subject}</span>
-                    </div>
-                    <div className="mb-1 text-gray-600 whitespace-pre-line">{template.content}</div>
-                    <div className="flex flex-wrap gap-2 text-xs text-gray-500 mt-2">
-                      {template.cc && <span><span className="font-semibold">CC:</span> {template.cc}</span>}
-                      {template.bcc && <span><span className="font-semibold">BCC:</span> {template.bcc}</span>}
-                    </div>
-                    <button
-                      type="button"
-                      className="mt-3 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded transition"
-                      onClick={() => {
-                        navigator.clipboard.writeText(template.content);
-                        alert('Template copied to clipboard!');
-                      }}
-                    >
-                      Copy
-                    </button>
+                    {editingId === template.id ? (
+                      <form onSubmit={handleEditTemplate} className="space-y-2">
+                        <input
+                          className="border rounded w-full p-2 mb-1"
+                          value={editTitle}
+                          onChange={e => setEditTitle(e.target.value)}
+                          required
+                        />
+                        <input
+                          className="border rounded w-full p-2 mb-1"
+                          value={editSubject}
+                          onChange={e => setEditSubject(e.target.value)}
+                          placeholder="Subject"
+                        />
+                        <input
+                          className="border rounded w-full p-2 mb-1"
+                          value={editCc}
+                          onChange={e => setEditCc(e.target.value)}
+                          placeholder="CC"
+                        />
+                        <input
+                          className="border rounded w-full p-2 mb-1"
+                          value={editBcc}
+                          onChange={e => setEditBcc(e.target.value)}
+                          placeholder="BCC"
+                        />
+                        <textarea
+                          className="border rounded w-full p-2 mb-1"
+                          value={editContent}
+                          onChange={e => setEditContent(e.target.value)}
+                          rows={3}
+                          required
+                        />
+                        <div className="flex gap-2">
+                          <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">Save</button>
+                          <button type="button" onClick={cancelEdit} className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-3 py-1 rounded">Cancel</button>
+                        </div>
+                      </form>
+                    ) : (
+                      <>
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="font-bold text-lg text-blue-700">{template.title}</span>
+                          <span className="text-xs text-gray-400">{template.subject}</span>
+                        </div>
+                        <div className="mb-1 text-gray-600 whitespace-pre-line">{template.content}</div>
+                        <div className="flex flex-wrap gap-2 text-xs text-gray-500 mt-2">
+                          {template.cc && <span><span className="font-semibold">CC:</span> {template.cc}</span>}
+                          {template.bcc && <span><span className="font-semibold">BCC:</span> {template.bcc}</span>}
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          <button
+                            type="button"
+                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded transition"
+                            onClick={() => {
+                              navigator.clipboard.writeText(template.content);
+                              alert('Template copied to clipboard!');
+                            }}
+                          >
+                            Copy
+                          </button>
+                          <button
+                            type="button"
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition"
+                            onClick={() => startEdit(template)}
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </li>
                 ))}
               </ul>
