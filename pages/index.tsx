@@ -31,6 +31,16 @@ export default function Home() {
 
   useEffect(() => {
     fetchTemplates();
+    // Set up real-time subscription
+    const channel = supabase.channel('public:templates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'templates' }, () => {
+        fetchTemplates();
+      })
+      .subscribe();
+    // Cleanup on unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleAddTemplate = async (e: React.FormEvent) => {
@@ -153,7 +163,11 @@ export default function Home() {
               <h2 className="text-xl font-semibold text-gray-700 mb-4 text-center">List of Email Templates</h2>
               <ul className="space-y-4">
                 {templates.length === 0 && (
-                  <li className="text-gray-400 text-center">No templates yet.</li>
+                  <>
+                    <li className="text-gray-400 text-center">No templates yet.</li>
+                    {/* Debug: Show raw data if list is empty */}
+                    <li className="text-xs text-red-400 break-all">Raw data: {JSON.stringify(templates)}</li>
+                  </>
                 )}
                 {templates.map((template) => (
                   <li key={template.id} className="p-4 rounded-xl border border-gray-200 shadow-sm bg-gradient-to-br from-blue-50 to-green-50">
