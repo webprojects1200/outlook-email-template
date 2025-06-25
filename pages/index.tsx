@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import TemplateList from '../components/TemplateList';
 
 export default function Home() {
   const [templates, setTemplates] = useState<any[]>([]);
@@ -14,6 +15,8 @@ export default function Home() {
   const [editCc, setEditCc] = useState('');
   const [editBcc, setEditBcc] = useState('');
   const [editContent, setEditContent] = useState('');
+  const [section, setSection] = useState('');
+  const [editSection, setEditSection] = useState('');
 
   // Fetch templates helper
   const fetchTemplates = async () => {
@@ -53,6 +56,7 @@ export default function Home() {
         subject,
         cc,
         bcc,
+        section,
       },
     ]);
     console.log('Insert result:', { data, error });
@@ -65,6 +69,7 @@ export default function Home() {
     setSubject('');
     setCc('');
     setBcc('');
+    setSection('');
     // Refresh templates
     await fetchTemplates();
   };
@@ -76,6 +81,7 @@ export default function Home() {
     setEditCc(template.cc || '');
     setEditBcc(template.bcc || '');
     setEditContent(template.content);
+    setEditSection(template.section || '');
   };
 
   const cancelEdit = () => {
@@ -85,6 +91,7 @@ export default function Home() {
     setEditCc('');
     setEditBcc('');
     setEditContent('');
+    setEditSection('');
   };
 
   const handleEditTemplate = async (e: React.FormEvent) => {
@@ -96,6 +103,7 @@ export default function Home() {
       cc: editCc,
       bcc: editBcc,
       content: editContent,
+      section: editSection,
     };
     const { data, error } = await supabase.from('templates').update(updateData).eq('id', editingId);
     console.log('Update result:', { data, error });
@@ -108,12 +116,31 @@ export default function Home() {
     await fetchTemplates();
   };
 
+  // Delete template handler
+  const handleDeleteTemplate = async (id: string) => {
+    const { error } = await supabase.from('templates').delete().eq('id', id);
+    if (error) {
+      alert('Error deleting template: ' + error.message);
+      return;
+    }
+    // No need to call fetchTemplates here, real-time should update
+  };
+
+  // Get unique sections from templates
+  const sectionOptions = Array.from(new Set(templates.map(t => t.section).filter(Boolean)));
+  // If the current section is no longer in the options, clear it
+  useEffect(() => {
+    if (section && !sectionOptions.includes(section)) {
+      setSection('');
+    }
+  }, [sectionOptions.join(','), section]);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-100">
       <div className="w-full max-w-6xl px-2">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Form Column */}
-          <div className="w-full lg:w-1/2">
+          <div className="w-full lg:w-1/2 lg:sticky lg:top-0 lg:self-start lg:z-10">
             <form onSubmit={handleAddTemplate} className="mb-6 space-y-4 bg-white shadow-2xl rounded-2xl px-6 pt-8 pb-10 border border-gray-100">
               <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">Create Email Template</h2>
               <input
@@ -141,6 +168,34 @@ export default function Home() {
                 value={bcc}
                 onChange={e => setBcc(e.target.value)}
               />
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="section-input">Section</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="section-input"
+                    className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg w-full p-3 text-gray-700 placeholder-gray-400 transition"
+                    placeholder="e.g. HR, Sales, Support"
+                    value={section}
+                    onChange={e => setSection(e.target.value)}
+                    list="section-options"
+                    autoComplete="off"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
+                    onClick={() => setSection('')}
+                    title="Clear section"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <datalist id="section-options">
+                  {sectionOptions.map(option => (
+                    <option value={option} key={option} />
+                  ))}
+                </datalist>
+              </div>
               <textarea
                 className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg w-full p-3 mb-2 text-gray-700 placeholder-gray-400 transition resize-none"
                 placeholder="Enter new email template..."
@@ -160,90 +215,11 @@ export default function Home() {
           {/* List Column */}
           <div className="w-full lg:w-1/2">
             <div className="bg-white shadow-xl rounded-2xl p-6 border border-gray-100">
-              <h2 className="text-xl font-semibold text-gray-700 mb-4 text-center">List of Email Templates</h2>
-              <ul className="space-y-4">
-                {templates.length === 0 && (
-                  <>
-                    <li className="text-gray-400 text-center">No templates yet.</li>
-                    {/* Debug: Show raw data if list is empty */}
-                    <li className="text-xs text-red-400 break-all">Raw data: {JSON.stringify(templates)}</li>
-                  </>
-                )}
-                {templates.map((template) => (
-                  <li key={template.id} className="p-4 rounded-xl border border-gray-200 shadow-sm bg-gradient-to-br from-blue-50 to-green-50">
-                    {editingId === template.id ? (
-                      <form onSubmit={handleEditTemplate} className="space-y-2">
-                        <input
-                          className="border rounded w-full p-2 mb-1"
-                          value={editTitle}
-                          onChange={e => setEditTitle(e.target.value)}
-                          required
-                        />
-                        <input
-                          className="border rounded w-full p-2 mb-1"
-                          value={editSubject}
-                          onChange={e => setEditSubject(e.target.value)}
-                          placeholder="Subject"
-                        />
-                        <input
-                          className="border rounded w-full p-2 mb-1"
-                          value={editCc}
-                          onChange={e => setEditCc(e.target.value)}
-                          placeholder="CC"
-                        />
-                        <input
-                          className="border rounded w-full p-2 mb-1"
-                          value={editBcc}
-                          onChange={e => setEditBcc(e.target.value)}
-                          placeholder="BCC"
-                        />
-                        <textarea
-                          className="border rounded w-full p-2 mb-1"
-                          value={editContent}
-                          onChange={e => setEditContent(e.target.value)}
-                          rows={3}
-                          required
-                        />
-                        <div className="flex gap-2">
-                          <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">Save</button>
-                          <button type="button" onClick={cancelEdit} className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-3 py-1 rounded">Cancel</button>
-                        </div>
-                      </form>
-                    ) : (
-                      <>
-                        <div className="mb-2 flex items-center justify-between">
-                          <span className="font-bold text-lg text-blue-700">{template.title}</span>
-                          <span className="text-xs text-gray-400">{template.subject}</span>
-                        </div>
-                        <div className="mb-1 text-gray-600 whitespace-pre-line">{template.content}</div>
-                        <div className="flex flex-wrap gap-2 text-xs text-gray-500 mt-2">
-                          {template.cc && <span><span className="font-semibold">CC:</span> {template.cc}</span>}
-                          {template.bcc && <span><span className="font-semibold">BCC:</span> {template.bcc}</span>}
-                        </div>
-                        <div className="flex gap-2 mt-3">
-                          <button
-                            type="button"
-                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded transition"
-                            onClick={() => {
-                              navigator.clipboard.writeText(template.content);
-                              alert('Template copied to clipboard!');
-                            }}
-                          >
-                            Copy
-                          </button>
-                          <button
-                            type="button"
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition"
-                            onClick={() => startEdit(template)}
-                          >
-                            Edit
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <TemplateList 
+                templates={templates} 
+                onDelete={handleDeleteTemplate} 
+                onEdit={startEdit}
+              />
             </div>
           </div>
         </div>
