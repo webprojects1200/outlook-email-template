@@ -18,6 +18,7 @@ export default function Home() {
   // Fetch templates helper
   const fetchTemplates = async () => {
     const { data, error } = await supabase.from('templates').select('*');
+    console.log('Fetched templates:', data, 'Error:', error);
     if (error) {
       console.error('Error fetching templates:', error);
       alert('Error fetching templates: ' + error.message);
