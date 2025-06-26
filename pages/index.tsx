@@ -128,12 +128,6 @@ export default function Home() {
 
   // Get unique sections from templates
   const sectionOptions = Array.from(new Set(templates.map(t => t.section).filter(Boolean)));
-  // If the current section is no longer in the options, clear it
-  useEffect(() => {
-    if (section && !sectionOptions.includes(section)) {
-      setSection('');
-    }
-  }, [sectionOptions.join(','), section]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-100">
@@ -176,9 +170,16 @@ export default function Home() {
                     className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg w-full p-3 text-gray-700 placeholder-gray-400 transition"
                     placeholder="e.g. HR, Sales, Support"
                     value={section}
-                    onChange={e => setSection(e.target.value)}
+                    onChange={e => {
+                      // Defensive: Only update if value is string (should always be)
+                      if (typeof e.target.value === 'string') setSection(e.target.value);
+                    }}
                     list="section-options"
                     autoComplete="off"
+                    type="text"
+                    spellCheck={false}
+                    autoCorrect="off"
+                    autoCapitalize="off"
                   />
                   <button
                     type="button"
@@ -224,6 +225,79 @@ export default function Home() {
           </div>
         </div>
       </div>
+      {/* Edit Template Modal or Inline Form */}
+      {editingId && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <form onSubmit={handleEditTemplate} className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-lg space-y-4 border border-gray-200">
+            <h2 className="text-xl font-bold mb-2">Edit Template</h2>
+            <input
+              className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg w-full p-3 text-gray-700 placeholder-gray-400 transition"
+              placeholder="Title"
+              value={editTitle}
+              onChange={e => setEditTitle(e.target.value)}
+              required
+            />
+            <input
+              className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg w-full p-3 text-gray-700 placeholder-gray-400 transition"
+              placeholder="Subject"
+              value={editSubject}
+              onChange={e => setEditSubject(e.target.value)}
+            />
+            <input
+              className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg w-full p-3 text-gray-700 placeholder-gray-400 transition"
+              placeholder="CC (comma separated)"
+              value={editCc}
+              onChange={e => setEditCc(e.target.value)}
+            />
+            <input
+              className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg w-full p-3 text-gray-700 placeholder-gray-400 transition"
+              placeholder="BCC (comma separated)"
+              value={editBcc}
+              onChange={e => setEditBcc(e.target.value)}
+            />
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="edit-section-input">Section</label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="edit-section-input"
+                  className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg w-full p-3 text-gray-700 placeholder-gray-400 transition"
+                  placeholder="e.g. HR, Sales, Support"
+                  value={editSection}
+                  onChange={e => setEditSection(e.target.value)}
+                  list="edit-section-options"
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
+                  onClick={() => setEditSection('')}
+                  title="Clear section"
+                >
+                  Clear
+                </button>
+              </div>
+              <datalist id="edit-section-options">
+                {sectionOptions.map(option => (
+                  <option value={option} key={option} />
+                ))}
+              </datalist>
+            </div>
+            <textarea
+              className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg w-full p-3 text-gray-700 placeholder-gray-400 transition resize-none"
+              placeholder="Template content..."
+              value={editContent}
+              onChange={e => setEditContent(e.target.value)}
+              rows={5}
+              required
+            />
+            <div className="flex gap-2 justify-end">
+              <button type="button" onClick={cancelEdit} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Cancel</button>
+              <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold">Save</button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
